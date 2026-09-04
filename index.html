@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Abyss Garden - Deep-Sea Farming RPG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Top Left: Stats Bar (Shells, Oxygen, Time, Diver Name) -->
+    <div id="hud-top-left" class="hud-panel glassmorphism">
+      <div class="stat-item" id="diver-hud-badge" title="Click to view Diver Profile">
+        <span class="stat-icon" id="diver-avatar-hud">🤿</span>
+        <div class="stat-info">
+          <span class="stat-label" id="diver-name-hud">Aquanaut Ryan</span>
+          <span class="stat-value small" id="diver-rank-hud">Reef Pioneer</span>
+        </div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item" id="currency-display">
+        <span class="stat-icon">🐚</span>
+        <div class="stat-info">
+          <span class="stat-label">Pearl Shells</span>
+          <span class="stat-value" id="shell-count">50</span>
+        </div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item oxygen-meter">
+        <span class="stat-icon">🫧</span>
+        <div class="stat-info">
+          <div class="stat-header">
+            <span class="stat-label">Oxygen Tank</span>
+            <span class="stat-text-val" id="oxygen-text">100%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar oxygen-bar" id="oxygen-bar"></div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item" id="tide-display">
+        <span class="stat-icon" id="tide-icon">☀️</span>
+        <div class="stat-info">
+          <span class="stat-label" id="tide-phase">Shallow Sunlight</span>
+          <span class="stat-value small" id="tide-clock">Day 1 • 08:00</span>
+        </div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item" id="weather-display">
+        <span class="stat-icon" id="weather-icon">🌊</span>
+        <div class="stat-info">
+          <span class="stat-label" id="weather-title">Tranquil Deep</span>
+          <span class="stat-value small" id="weather-clock">Next Shift in 10:00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Right: Audio, Settings, Expeditions, Friends & Account Controls -->
+    <div id="hud-top-right" class="hud-panel glassmorphism">
+      <button id="btn-expeditions" class="icon-btn" title="Co-op Expeditions (C)">
+        <span>🧭</span>
+      </button>
+      <button id="btn-friends" class="icon-btn" title="Friend Roster (F)">
+        <span>👥</span>
+      </button>
+      <button id="btn-auth" class="icon-btn" title="Diver Registry / Account">
+        <span>👤</span>
+      </button>
+      <button id="btn-sound" class="icon-btn" title="Toggle Sound (M)">
+        <span id="sound-icon">🔊</span>
+      </button>
+      <button id="btn-settings" class="icon-btn" title="Settings (O)">
+        <span>⚙️</span>
+      </button>
+      <button id="btn-help" class="icon-btn" title="How to Play (H)">
+        <span>❓</span>
+      </button>
+    </div>
+
+    <!-- Bottom Center: Hotbar / Toolbelt -->
+    <div id="hud-bottom" class="hud-panel glassmorphism">
+      <div class="hotbar-slots" id="hotbar-slots">
+        <!-- Generated dynamically in TS -->
+      </div>
+      <div class="hotbar-hint">
+        Press <kbd>1</kbd> - <kbd>9</kbd> or Scroll to switch • <kbd>Space</kbd> / Left Click to use
+      </div>
+    </div>
+
+    <!-- Interactive Prompt / Notification Toast -->
+    <div id="action-prompt" class="action-prompt hidden">
+      <span class="key-badge">SPACE</span>
+      <span id="prompt-text">Talk to Barnaby</span>
+    </div>
+
+    <!-- Modal: Settings (Controls, Audio Volume, Diver Account & Logout) -->
+    <div id="modal-settings" class="modal-overlay hidden">
+      <div class="modal-card glassmorphism settings-card">
+        <div class="modal-header">
+          <h2>Abyss Garden Settings</h2>
+          <button class="modal-close" id="btn-close-settings">×</button>
+        </div>
+
+        <div class="settings-tabs">
+          <button class="tab-btn active" id="tab-settings-controls">Game Controls</button>
+          <button class="tab-btn" id="tab-settings-audio">Audio & Volume</button>
+          <button class="tab-btn" id="tab-settings-account">Diver Profile & Account</button>
+        </div>
+
+        <div class="settings-body">
+          <!-- Pane 1: Game Controls -->
+          <div id="pane-settings-controls" class="settings-pane">
+            <div class="settings-group">
+              <h3 class="settings-group-title">Movement & Diving</h3>
+              <div class="controls-grid">
+                <div class="control-row">
+                  <span class="control-desc">Swim In All Directions</span>
+                  <div class="control-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>Arrow Keys</kbd></div>
+                </div>
+                <div class="control-row">
+                  <span class="control-desc">Aim Diving Spotlight & Farm Target</span>
+                  <div class="control-keys"><kbd>Mouse Cursor</kbd></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-group">
+              <h3 class="settings-group-title">Subsea Farming Actions</h3>
+              <div class="controls-grid">
+                <div class="control-row">
+                  <span class="control-desc">Till Sand / Sow Spore / Inject Nutrients / Harvest</span>
+                  <div class="control-keys"><kbd>Left Click</kbd> or <kbd>Spacebar</kbd></div>
+                </div>
+                <div class="control-row">
+                  <span class="control-desc">Switch Active Tool / Seed</span>
+                  <div class="control-keys"><kbd>1</kbd> - <kbd>9</kbd> or <kbd>Scroll Wheel</kbd></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-group">
+              <h3 class="settings-group-title">Interactions & Menus</h3>
+              <div class="controls-grid">
+                <div class="control-row">
+                  <span class="control-desc">Trade with Barnaby the Crab</span>
+                  <div class="control-keys"><kbd>E</kbd> or <kbd>Spacebar</kbd></div>
+                </div>
+                <div class="control-row">
+                  <span class="control-desc">Toggle Audio Mute</span>
+                  <div class="control-keys"><kbd>M</kbd></div>
+                </div>
+                <div class="control-row">
+                  <span class="control-desc">Open Settings / Controls Menu</span>
+                  <div class="control-keys"><kbd>O</kbd></div>
+                </div>
+                <div class="control-row">
+                  <span class="control-desc">Close Open Menus</span>
+                  <div class="control-keys"><kbd>Escape</kbd></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 2: Audio & Volume -->
+          <div id="pane-settings-audio" class="settings-pane hidden">
+            <div class="settings-group">
+              <h3 class="settings-group-title">Sound Mixer</h3>
+
+              <!-- Master Volume -->
+              <div class="slider-row">
+                <div class="slider-label-area">
+                  <span class="slider-title">Master Volume</span>
+                  <span class="slider-val" id="val-master-text">80%</span>
+                </div>
+                <input type="range" id="slider-master" min="0" max="100" value="80" class="custom-slider" />
+              </div>
+
+              <!-- Ambient Ocean Volume -->
+              <div class="slider-row">
+                <div class="slider-label-area">
+                  <span class="slider-title">Subsea Ambient Drone</span>
+                  <span class="slider-val" id="val-ambient-text">50%</span>
+                </div>
+                <input type="range" id="slider-ambient" min="0" max="100" value="50" class="custom-slider" />
+              </div>
+
+              <!-- Sound Effects (SFX) Volume -->
+              <div class="slider-row">
+                <div class="slider-label-area">
+                  <span class="slider-title">Sound Effects (SFX)</span>
+                  <span class="slider-val" id="val-sfx-text">80%</span>
+                </div>
+                <input type="range" id="slider-sfx" min="0" max="100" value="80" class="custom-slider" />
+              </div>
+
+              <div class="audio-test-area">
+                <button id="btn-test-sound" class="secondary-btn">Test Audio Chime</button>
+                <span class="settings-tip">Real-time procedural Web Audio synthesis with zero latency.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pane 3: Diver Profile & Account Logout -->
+          <div id="pane-settings-account" class="settings-pane hidden">
+            <div class="settings-group">
+              <h3 class="settings-group-title">Diver Identity</h3>
+              <div class="diver-profile-box">
+                <div class="diver-avatar-large">🤿</div>
+                <div class="diver-edit-details">
+                  <label for="diver-name-input" class="diver-label">Callsign / Diver Name:</label>
+                  <div class="diver-name-row">
+                    <input type="text" id="diver-name-input" maxlength="20" class="diver-input" value="Aquanaut Ryan" />
+                    <button id="btn-save-diver-name" class="secondary-btn">Save</button>
+                  </div>
+                  <div class="diver-rank-badge" id="diver-rank-display">Reef Pioneer (Rank 1)</div>
+                </div>
+              </div>
+
+              <div class="diver-stats-container" id="diver-stats-display">
+                <!-- Populated via TS -->
+              </div>
+            </div>
+
+            <div class="settings-group danger-zone">
+              <h3 class="settings-group-title text-danger">Diver Session</h3>
+              <p class="danger-desc">Log out of your active Diver Profile. Your progress is automatically saved to your browser's local cache.</p>
+              <button id="btn-logout-account" class="danger-btn">Logout Diver Account</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Diver Sign In / Welcome -->
+    <div id="modal-login" class="modal-overlay hidden">
+      <div class="modal-card glassmorphism login-card">
+        <div class="modal-header">
+          <h2>Aquanaut Expedition Check-in</h2>
+        </div>
+        <div class="modal-body login-body">
+          <p class="login-desc">Enter your Diver callsign to log into your seabed station:</p>
+          <div class="avatar-selector">
+            <span class="avatar-option selected" data-avatar="🤿">🤿</span>
+            <span class="avatar-option" data-avatar="🧜">🧜</span>
+            <span class="avatar-option" data-avatar="🐢">🐢</span>
+            <span class="avatar-option" data-avatar="🐙">🐙</span>
+          </div>
+          <input type="text" id="login-diver-name" class="diver-input" placeholder="e.g. Captain Ryan" maxlength="20" />
+          <button id="btn-login-submit" class="action-btn">Dive In</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Help / Controls Guide -->
+    <div id="modal-help" class="modal-overlay hidden">
+      <div class="modal-card glassmorphism">
+        <div class="modal-header">
+          <h2>How to Play Abyss Garden</h2>
+          <button class="modal-close" id="btn-close-help">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="guide-section">
+            <h3>Quick Overview</h3>
+            <p style="font-size: 13.5px; color: #cbd5e1; line-height: 1.5;">
+              Use <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to swim, aim with the mouse, and use <kbd>Space</kbd> or Left Click to till sand, sow glowing spores, inject nutrients, and harvest. Visit Barnaby the Crab to trade!
+            </p>
+          </div>
+          <div class="guide-section">
+            <h3>Subsea Farming Steps</h3>
+            <ol class="guide-list ordered">
+              <li><strong>Clear Seabed:</strong> Select <em>Sand Shovel</em> (1) and dig wild sand into a fertile plot.</li>
+              <li><strong>Sow Spores:</strong> Select Kelp, Coral, Oyster, or Jelly-Shroom (4-6) to plant.</li>
+              <li><strong>Nutrient Boost:</strong> Select <em>Nutrient Injector</em> (2) to accelerate growth <strong>2.2x</strong>!</li>
+              <li><strong>Harvest:</strong> When fully grown and glowing, use your hand or net (3) to harvest!</li>
+              <li><strong>Trade:</strong> Visit <em>Barnaby the Crab</em> at the coral outpost to sell harvests and buy upgrades.</li>
+              <li><strong>Oxygen:</strong> Replenish your oxygen tank at bubbling <em>Hydrothermal Vents</em>.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Barnaby's Subsea Bazaar (Shop) -->
+    <div id="modal-shop" class="modal-overlay hidden">
+      <div class="modal-card glassmorphism shop-card">
+        <div class="modal-header">
+          <div class="shop-title-area">
+            <div>
+              <h2>Barnaby's Subsea Bazaar</h2>
+              <p class="shop-subtitle">"Got shiny treasures from the seabed? I pay top shell!"</p>
+            </div>
+          </div>
+          <button class="modal-close" id="btn-close-shop">×</button>
+        </div>
+
+        <div class="shop-tabs">
+          <button class="tab-btn active" id="tab-spores">Buy Spores</button>
+          <button class="tab-btn" id="tab-gear">Diving Gear & Upgrades</button>
+          <button class="tab-btn" id="tab-sell">Sell Harvests</button>
+        </div>
+
+        <div class="shop-content">
+          <div id="shop-spores-list" class="shop-grid"></div>
+          <div id="shop-gear-list" class="shop-grid hidden"></div>
+          <div id="shop-sell-list" class="shop-grid hidden"></div>
+        </div>
+
+        <div class="shop-footer">
+          <div class="player-balance">
+            Your Balance: <strong id="shop-shell-count">50</strong> Shells
+          </div>
+          <span class="shop-tip">Tip: Rare crops sell for much higher shells during Abyssal Night!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Storage Chest (Home Grotto) -->
+    <div id="modal-chest" class="modal-overlay hidden">
+      <div class="modal-card glassmorphism chest-card">
+        <div class="modal-header">
+          <h2 id="chest-title">Storage Chest</h2>
+          <button class="modal-close" id="btn-close-chest">×</button>
+        </div>
+        <div class="chest-body">
+          <div class="chest-section-title">Chest Storage</div>
+          <div id="chest-grid" class="chest-grid"></div>
+          <div id="chest-message" class="chest-info-tip">Click an item to transfer between Chest and Hotbar (Max Stack: 16)</div>
+          <div class="chest-section-title">Diver Toolbelt / Hotbar</div>
+          <div id="chest-hotbar-grid" class="chest-hotbar-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Bio-Extractor & Refinery Machine (Home Grotto) -->
+    <div id="modal-refinery" class="modal-overlay hidden">
+      <div class="modal-card glassmorphism refinery-card">
+        <div class="modal-header">
+          <div>
+            <h2>Bio-Extractor & Refinery</h2>
+            <p class="refinery-subtitle">Distill raw crops into high-value capsules, gems, and elixirs</p>
+          </div>
+          <button class="modal-close" id="btn-close-refinery">×</button>
+        </div>
+        <div id="refinery-status-banner" class="refinery-status-banner"></div>
+        <div id="refinery-message" class="refinery-msg"></div>
+        <div class="refinery-body">
+          <div id="refinery-recipes-list" class="refinery-recipes-list"></div>
+          <div id="refinery-processing-area" class="refinery-processing-area hidden"></div>
+          <div id="refinery-completed-area" class="refinery-completed-area hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Diver Registry (Account Login & Register) -->
+    <div id="modal-auth" class="modal-overlay hidden">
+      <div class="modal-card glassmorphism auth-card">
+        <div class="modal-header">
+          <div>
+            <h2>Diver Registry</h2>
+            <p class="auth-subtitle">Save your journey progress securely in the seabed database</p>
+          </div>
+          <button class="modal-close" id="btn-close-auth">×</button>
+        </div>
+        <div class="auth-tabs">
+          <button class="tab-btn active" id="tab-auth-login">Sign In</button>
+          <button class="tab-btn" id="tab-auth-register">Register New Diver</button>
+        </div>
+        <form id="auth-form" class="auth-form">
+          <div class="form-group">
+            <label for="auth-callsign">Diver Callsign (Username)</label>
+            <input type="text" id="auth-callsign" placeholder="e.g. Aquanaut_77" required maxlength="24" autocomplete="username" />
+          </div>
+          <div class="form-group">
+            <label for="auth-password">Security Key (Password)</label>
+            <input type="password" id="auth-password" placeholder="••••••••" required autocomplete="current-password" />
+          </div>
+          <div id="auth-message" class="auth-msg"></div>
+          <button type="submit" id="btn-auth-submit" class="action-btn auth-submit-btn">Sign In to Seabed</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Friends Roster & Diver Comms -->
+    <div id="modal-friends" class="modal-overlay hidden">
+      <div class="modal-card glassmorphism friends-card">
+        <div class="modal-header">
+          <div>
+            <h2>Subsea Comms & Diver Roster</h2>
+            <p class="friends-subtitle">Your Frequency Callsign: <strong id="friends-my-callsign">Diver</strong></p>
+          </div>
+          <button class="modal-close" id="btn-close-friends">×</button>
+        </div>
+        <div class="friends-add-bar">
+          <input type="text" id="input-add-friend" placeholder="Enter diver callsign..." maxlength="24" />
+          <button id="btn-add-friend" class="btn-primary-small">Add Diver</button>
+        </div>
+        <div id="friends-message" class="friends-msg"></div>
+        <div class="friends-list-container">
+          <div id="friends-list" class="friends-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Co-op Expeditions Hub -->
+    <div id="modal-expeditions" class="modal-overlay hidden">
+      <div class="modal-card glassmorphism exp-card">
+        <div class="modal-header">
+          <div>
+            <h2>Abyssal Expeditions (Co-op 2-4 Players)</h2>
+            <p class="exp-subtitle">Embark on shared deep-sea journeys with fellow divers</p>
+          </div>
+          <button class="modal-close" id="btn-close-expeditions">×</button>
+        </div>
+        
+        <div id="exp-tabs-nav" class="exp-tabs">
+          <button class="tab-btn active" id="tab-exp-create">Launch Expedition</button>
+          <button class="tab-btn" id="tab-exp-join">Join with Code</button>
+          <button class="tab-btn" id="tab-exp-saved">My Expeditions</button>
+        </div>
+
+        <div id="exp-message" class="exp-msg"></div>
+
+        <!-- Section: Create -->
+        <div id="exp-create-section" class="exp-section">
+          <div class="exp-notice">
+            <strong>Expedition Protocol:</strong> Worlds are shared up to 4 players max. You can resume this world later, or dive in alone while friends are away. Expedition inventories are saved exclusively in this expedition world.
+          </div>
+          <div class="form-group">
+            <label for="input-exp-name">Expedition Name</label>
+            <input type="text" id="input-exp-name" placeholder="e.g. Mariana Trench Trenchers" maxlength="32" />
+          </div>
+          <button id="btn-create-exp" class="action-btn">Launch Shared Expedition</button>
+        </div>
+
+        <!-- Section: Join -->
+        <div id="exp-join-section" class="exp-section hidden">
+          <div class="form-group">
+            <label for="input-join-code">Enter 6-Character Expedition Code</label>
+            <input type="text" id="input-join-code" placeholder="e.g. AB7X92" maxlength="6" style="text-transform: uppercase; font-family: monospace; letter-spacing: 3px; font-size: 1.2rem;" />
+          </div>
+          <button id="btn-join-exp" class="action-btn">Join Expedition</button>
+        </div>
+
+        <!-- Section: Saved Expeditions -->
+        <div id="exp-saved-section" class="exp-section hidden">
+          <div class="exp-notice">
+            Select a past expedition to resume where your team left off. You can play even if other divers are currently offline.
+          </div>
+          <div id="exp-saved-list" class="saved-exp-list"></div>
+        </div>
+
+        <!-- Section: Active Room Status -->
+        <div id="exp-active-room-section" class="exp-section hidden">
+          <div class="active-room-banner">
+            <div class="active-room-code-block">
+              <span class="code-label">Room Code:</span>
+              <span id="exp-active-code" class="code-value">------</span>
+            </div>
+            <p class="code-share-tip">Share this 6-letter code with friends or invite them from your Diver Roster!</p>
+          </div>
+          <div class="active-divers-header">Divers In Session (Max 4):</div>
+          <div id="exp-divers-list" class="exp-divers-chips"></div>
+          <div class="exp-room-actions">
+            <button id="btn-leave-exp" class="action-btn danger">Return to Solo Journey</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Grotto Wardrobe (Diving Suit Customization) -->
+    <div id="modal-wardrobe" class="modal-overlay hidden">
+      <div class="modal-card glassmorphism wardrobe-card">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h2>Grotto Wardrobe & Diving Suits</h2>
+            <div class="modal-subtitle">Customize and equip your personal diving suit colors</div>
+          </div>
+          <div class="shop-balance-badge">
+            <span class="shop-shell-icon">🐚</span>
+            <span id="wardrobe-shell-count">100</span> Shells
+          </div>
+          <button class="modal-close" id="btn-close-wardrobe">×</button>
+        </div>
+
+        <div class="wardrobe-body">
+          <div class="wardrobe-preview-panel">
+            <div class="preview-title">Diver Suit Preview</div>
+            <canvas id="wardrobe-preview-canvas" width="140" height="140"></canvas>
+            <div class="preview-tip">Hover or equip to preview suit colors in real time</div>
+          </div>
+
+          <div class="wardrobe-catalog-panel">
+            <div id="wardrobe-suits-list" class="wardrobe-suits-list">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over / Oxygen Depleted Alert -->
+    <div id="modal-respawn" class="modal-overlay hidden">
+      <div class="modal-card glassmorphism alert-card">
+        <h2>Oxygen Depleted</h2>
+        <p>A pod of friendly sea turtles rescued you and returned you safely to the garden outpost with fresh oxygen!</p>
+        <button id="btn-respawn" class="action-btn">Dive Back In</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>
