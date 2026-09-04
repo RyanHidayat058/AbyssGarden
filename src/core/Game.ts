@@ -547,22 +547,30 @@ export class Game {
     if (save) {
       if (typeof save.shells === 'number') this.inventory.pearlShells = save.shells;
       if (Array.isArray(save.inventory_slots)) {
-        const slots = save.inventory_slots.slice(0, 6);
-        if (!slots[0] || slots[0].id !== 'shovel') {
-          slots[0] = { type: 'tool', id: 'shovel', name: 'Sand Shovel', icon: '⛏️' };
+        const rawSlots = save.inventory_slots.slice(0, 6);
+        const shovelSlot = { type: 'tool', id: 'shovel', name: 'Sand Shovel', icon: '⛏️' };
+        const levelerSlot = { type: 'tool', id: 'leveler', name: 'Sand Leveler', icon: '🧹' };
+
+        const rescuedItems: any[] = [];
+        // If slot 1 was corrupted by an item, rescue it to item slots
+        if (rawSlots[1] && rawSlots[1].id !== 'leveler' && rawSlots[1].count && rawSlots[1].count > 0) {
+          rescuedItems.push(rawSlots[1]);
         }
-        if (!slots[1] || slots[1].id !== 'leveler') {
-          slots[1] = { type: 'tool', id: 'leveler', name: 'Sand Leveler', icon: '🧹' };
-        }
-        while (slots.length < 6) {
-          slots.push({ type: 'harvest', id: 'empty', name: 'Empty Slot', icon: '', count: 0 });
-        }
-        for (let i = 2; i < slots.length; i++) {
-          if (!slots[i] || !slots[i].count || slots[i].count <= 0) {
-            slots[i] = { type: 'harvest', id: 'empty', name: 'Empty Slot', icon: '', count: 0 };
+        for (let i = 2; i < rawSlots.length; i++) {
+          if (rawSlots[i] && rawSlots[i].count && rawSlots[i].count > 0 && rawSlots[i].id !== 'empty') {
+            rescuedItems.push(rawSlots[i]);
           }
         }
-        this.inventory.hotbarSlots = slots;
+
+        const finalSlots: any[] = [shovelSlot, levelerSlot];
+        for (let i = 0; i < 4; i++) {
+          if (rescuedItems[i]) {
+            finalSlots.push(rescuedItems[i]);
+          } else {
+            finalSlots.push({ type: 'harvest', id: 'empty', name: 'Empty Slot', icon: '', count: 0 });
+          }
+        }
+        this.inventory.hotbarSlots = finalSlots;
         this.inventory.syncCountsFromSlots();
       }
       if (Array.isArray(save.farm_plots)) {

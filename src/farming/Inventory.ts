@@ -17,6 +17,8 @@ export interface HotbarSlot {
 
 export const MAX_HOTBAR_SLOTS = 6;
 export const MAX_STACK_SIZE = 16;
+// Slots 0 and 1 are permanent tools: Shovel (⛏️) and Leveler / Sapu (🧹). They MUST NEVER be overwritten!
+export const ITEM_START_SLOT = 2; // Slots 2..5 (Hotkeys 3, 4, 5, 6)
 
 export function getMutationsKey(mutations?: CropMutation[] | CropMutation | null): string {
   if (!mutations) return '';
@@ -56,10 +58,10 @@ export class Inventory {
   };
 
   // Strictly 6 slots hotbar:
-  // Slot 0 (1): Sand Shovel (⛏️, unlimited tool)
-  // Slot 1 (2): Sand Leveler (🧹, unlimited tool)
-  // Slot 2 (3): Plankton Nutrients (🧪, consumable; vanishes when 0)
-  // Slots 3-5 (4-6): Seeds / Harvests / Items (Max 6 slots total)
+  // Slot 0 (Key 1): Sand Shovel (⛏️, permanent unlimited tool)
+  // Slot 1 (Key 2): Sand Leveler / Sapu (🧹, permanent unlimited tool - NEVER overwritten)
+  // Slot 2 (Key 3): Plankton Nutrients (🧪, consumable; vanishes when 0)
+  // Slots 3-5 (Keys 4-6): Seeds / Flora Harvests / Backpack items
   public selectedSlotIndex: number = 0;
   public hotbarSlots: HotbarSlot[] = [
     { type: 'tool', id: 'shovel', name: 'Sand Shovel', icon: '⛏️' },
@@ -92,7 +94,8 @@ export class Inventory {
 
   public get nutrientCount(): number {
     let total = 0;
-    for (const slot of this.hotbarSlots) {
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
+      const slot = this.hotbarSlots[i];
       if (slot && slot.id === 'nutrient' && slot.count && slot.count > 0) {
         total += slot.count;
       }
@@ -101,7 +104,7 @@ export class Inventory {
   }
 
   public useNutrient(): boolean {
-    for (let i = 0; i < this.hotbarSlots.length; i++) {
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (slot && slot.id === 'nutrient' && (slot.count || 0) > 0) {
         slot.count = (slot.count || 0) - 1;
@@ -123,15 +126,15 @@ export class Inventory {
   }
 
   public canAddNutrients(amount: number = 5): boolean {
-    // 1. Check existing nutrient slot with room
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 1. Check existing nutrient slot with room in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (slot && slot.id === 'nutrient' && (slot.count || 0) + amount <= MAX_STACK_SIZE) {
         return true;
       }
     }
-    // 2. Check for empty slot
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 2. Check for empty slot in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (!slot || slot.id === 'empty' || !slot.count || slot.count === 0) {
         return true;
@@ -141,8 +144,8 @@ export class Inventory {
   }
 
   public addNutrients(amount: number = 5): boolean {
-    // 1. Add to existing nutrient slot
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 1. Add to existing nutrient slot in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (slot && slot.id === 'nutrient' && (slot.count || 0) < MAX_STACK_SIZE) {
         slot.count = Math.min(MAX_STACK_SIZE, (slot.count || 0) + amount);
@@ -150,8 +153,8 @@ export class Inventory {
         return true;
       }
     }
-    // 2. Fill first empty slot
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 2. Fill first empty slot in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (!slot || slot.id === 'empty' || !slot.count || slot.count === 0) {
         this.hotbarSlots[i] = {
@@ -172,7 +175,28 @@ export class Inventory {
     this.seedCounts = { kelp: 0, coral: 0, pearl: 0, jellyshroom: 0 };
     this.harvestCounts = { kelp: 0, coral: 0, pearl: 0, jellyshroom: 0 };
 
-    for (let i = 0; i < this.hotbarSlots.length; i++) {
+    // GUARANTEE: Slot 0 is ALWAYS Shovel
+    if (!this.hotbarSlots[0] || this.hotbarSlots[0].id !== 'shovel') {
+      this.hotbarSlots[0] = { type: 'tool', id: 'shovel', name: 'Sand Shovel', icon: '⛏️' };
+    }
+
+    // GUARANTEE: Slot 1 is ALWAYS Sand Leveler / Sapu (🧹)
+    if (!this.hotbarSlots[1] || this.hotbarSlots[1].id !== 'leveler') {
+      const displaced = this.hotbarSlots[1];
+      this.hotbarSlots[1] = { type: 'tool', id: 'leveler', name: 'Sand Leveler', icon: '🧹' };
+      // If slot 1 had an item, rescue it to the first free item slot (2..5)
+      if (displaced && displaced.type !== 'tool' && (displaced.count || 0) > 0 && displaced.id !== 'empty') {
+        for (let j = ITEM_START_SLOT; j < this.hotbarSlots.length; j++) {
+          if (!this.hotbarSlots[j] || this.hotbarSlots[j].id === 'empty' || !this.hotbarSlots[j].count || this.hotbarSlots[j].count === 0) {
+            this.hotbarSlots[j] = displaced;
+            break;
+          }
+        }
+      }
+    }
+
+    // Process item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (!slot) continue;
 
@@ -208,8 +232,8 @@ export class Inventory {
     const mutKey = getMutationsKey(mutations);
     const targetWeight = Number(weightKg.toFixed(1));
 
-    // 1. Check if an existing identical stack exists with room (same crop, same mutations, same weight)
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 1. Check if an existing identical stack exists with room in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (
         slot &&
@@ -224,8 +248,8 @@ export class Inventory {
       }
     }
 
-    // 2. Check for an empty slot
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 2. Check for an empty slot in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (!slot || slot.id === 'empty' || !slot.count || slot.count === 0) {
         return { canAdd: true };
@@ -233,7 +257,7 @@ export class Inventory {
     }
 
     // 3. Inventory is full
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (
         slot &&
@@ -275,8 +299,8 @@ export class Inventory {
     const displayName = `${meta.prefix}${config.harvestName} (${targetWeight.toFixed(1)} kg)`;
     const displayIcon = meta.icons ? `${config.harvestIcon}${meta.icons}` : config.harvestIcon;
 
-    // 1. Try stacking into existing identical slot
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 1. Try stacking into existing identical slot in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (
         slot &&
@@ -292,8 +316,8 @@ export class Inventory {
       }
     }
 
-    // 2. Put into first empty slot
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 2. Put into first empty slot in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (!slot || slot.id === 'empty' || !slot.count || slot.count === 0) {
         this.hotbarSlots[i] = {
@@ -316,15 +340,15 @@ export class Inventory {
   }
 
   public canAddSeed(cropId: CropId, amount: number = 1): boolean {
-    // 1. Check existing seed stack with room
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 1. Check existing seed stack with room in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (slot && slot.type === 'seed' && slot.id === cropId && (slot.count || 0) + amount <= MAX_STACK_SIZE) {
         return true;
       }
     }
-    // 2. Check for empty slot
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 2. Check for empty slot in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (!slot || slot.id === 'empty' || !slot.count || slot.count === 0) {
         return true;
@@ -337,8 +361,8 @@ export class Inventory {
     const config = CROPS_CONFIG[cropId];
     this.seedCounts[cropId] = (this.seedCounts[cropId] || 0) + amount;
 
-    // 1. Try adding to existing matching seed stack
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 1. Try adding to existing matching seed stack in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (slot && slot.type === 'seed' && slot.id === cropId && (slot.count || 0) < MAX_STACK_SIZE) {
         slot.count = Math.min(MAX_STACK_SIZE, (slot.count || 0) + amount);
@@ -347,8 +371,8 @@ export class Inventory {
       }
     }
 
-    // 2. Put into first empty slot
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    // 2. Put into first empty slot in item slots (2..5)
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (!slot || slot.id === 'empty' || !slot.count || slot.count === 0) {
         this.hotbarSlots[i] = {
@@ -367,7 +391,7 @@ export class Inventory {
   }
 
   public useSeed(cropId: CropId): boolean {
-    for (let i = 1; i < this.hotbarSlots.length; i++) {
+    for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
       const slot = this.hotbarSlots[i];
       if (slot && slot.type === 'seed' && slot.id === cropId && (slot.count || 0) > 0) {
         slot.count = (slot.count || 0) - 1;
@@ -411,8 +435,8 @@ export class Inventory {
       return this.addNutrients(item.count);
     }
     if (item.type === 'refined') {
-      // Find matching refined stack or empty slot
-      for (let i = 1; i < this.hotbarSlots.length; i++) {
+      // Find matching refined stack or empty slot in item slots (2..5)
+      for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
         const slot = this.hotbarSlots[i];
         if (slot && slot.type === 'refined' && slot.id === item.id && (slot.count || 0) + item.count <= MAX_STACK_SIZE) {
           slot.count = (slot.count || 0) + item.count;
@@ -420,7 +444,7 @@ export class Inventory {
           return true;
         }
       }
-      for (let i = 1; i < this.hotbarSlots.length; i++) {
+      for (let i = ITEM_START_SLOT; i < this.hotbarSlots.length; i++) {
         const slot = this.hotbarSlots[i];
         if (!slot || slot.id === 'empty' || !slot.count || slot.count === 0) {
           this.hotbarSlots[i] = { ...item };
