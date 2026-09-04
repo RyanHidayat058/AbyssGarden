@@ -150,20 +150,20 @@ erDiagram
 
 ## Core Gameplay Mechanics
 
-### 1. Dedicated 9-Slot Hotbar Architecture
+### 1. Strict 6-Slot Hotbar Architecture
 
-The diver toolbelt enforces strict categorization to maintain inventory integrity:
+The diver toolbelt is capped at strictly 6 slots (hotkeys 1 to 6) to emphasize strategic resource management:
 
-- **Slots 1 to 3 (Tools and Consumables)**:
-  - **Slot 1 (Sand Shovel)**: Unlimited excavation tool used to till wild seabed sand into cultivable soil.
-  - **Slot 2 (Sand Leveler)**: Unlimited tool used to flatten tilled soil back into normal seabed floor.
-  - **Slot 3 (Plankton Nutrients)**: Consumable growth accelerator vial. Divers start with 5 vials; each injection reduces the count by 1. Refills are purchased from Barnaby's Gear Shop.
-- **Slots 4 to 6 (Seed Pouch)**:
-  - Dedicated exclusively to spores and polyps (`kelp`, `coral`, `pearl`, `jellyshroom`). Harvested flora cannot enter these slots.
-- **Slots 7 to 9 (Harvest Basket)**:
-  - Dedicated exclusively to mature harvested flora and refined goods. Spores cannot enter these slots.
-- **Clean Slot Cleanup**:
-  - When any item reaches zero (planted, sold, or moved into storage), the slot metadata and badges are wiped completely, rendering a clean empty slot.
+- **Slot 1 (Sand Shovel)**: Permanent unlimited excavation tool used to till wild seabed sand into cultivable soil.
+- **Slot 2 (Sand Leveler)**: Permanent unlimited tool used to flatten tilled soil back into normal seabed floor.
+- **Slots 3 to 6 (Diver Backpack Slots)**: Dynamic inventory slots holding consumable items, seeds, and harvested flora:
+  - **Plankton Nutrients**: Consumable growth accelerator vial. When count reaches 0 upon use or transfer, the item vanishes completely, leaving an open empty slot. Refills can be purchased from Barnaby.
+  - **Spores & Polyps**: Sown directly onto tilled plots. When count reaches 0 upon planting, the slot resets to empty.
+  - **Flora Harvests & Refined Goods**: Deposited directly into available backpack slots. Identical crops (same species, same stacked mutations, and matching weight) stack up to 16 per slot.
+- **Capacity Enforcement**:
+  - When all 6 slots are occupied and no matching stack with capacity remains, harvesting and shop purchasing are blocked with an immediate warning toast (`Inventory Full! No free slot`).
+- **Clean Slot Sanitization**:
+  - When any non-tool item is consumed, sold to Barnaby, or stored in a bunker chest, its metadata and icons are wiped immediately, rendering a clean empty slot.
 
 ### 2. Subsea Farming and Anti-Exploitation Rules
 
@@ -219,7 +219,7 @@ Four dynamic weather conditions cycle across the seabed:
 | Swim Movement (All Directions) | `W` / `A` / `S` / `D` | `Arrow Keys` |
 | Aim Spotlight and Target Grid | `Mouse Cursor` | - |
 | Use Tool / Plant Spore / Harvest | `Left Click` | `Spacebar` |
-| Switch Hotbar Slot | `1` to `9` | `Mouse Scroll Wheel` |
+| Switch Hotbar Slot | `1` to `6` | `Mouse Scroll Wheel` |
 | Interact (Barnaby, Airlock, Chest, Refinery, Wardrobe) | `E` | `Spacebar` |
 | Open Co-op Expeditions Hub | `C` | Top Navigation Bar |
 | Open Diver Friends Roster | `F` | Top Navigation Bar |

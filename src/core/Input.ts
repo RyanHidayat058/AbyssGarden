@@ -22,7 +22,7 @@ export class InputManager {
       if (!this.keys[e.code]) {
         if (e.code === 'Space') this.actionJustPressed = true;
         if (e.code === 'KeyE') this.interactJustPressed = true;
-        if (e.key >= '1' && e.key <= '9') {
+        if (e.key >= '1' && e.key <= '6') {
           this.hotkeyJustPressed = parseInt(e.key, 10);
         }
       }

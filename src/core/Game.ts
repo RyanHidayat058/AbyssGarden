@@ -117,6 +117,10 @@ export class Game {
       this.sound.playClick();
     });
 
+    this.inventory.onChange = () => {
+      this.hud.renderHotbar();
+    };
+
     this.shop = new ShopModal(
       this.inventory,
       this.sound,
@@ -542,8 +546,23 @@ export class Game {
 
     if (save) {
       if (typeof save.shells === 'number') this.inventory.pearlShells = save.shells;
-      if (Array.isArray(save.inventory_slots) && save.inventory_slots.length >= 6) {
-        this.inventory.hotbarSlots = save.inventory_slots;
+      if (Array.isArray(save.inventory_slots)) {
+        const slots = save.inventory_slots.slice(0, 6);
+        if (!slots[0] || slots[0].id !== 'shovel') {
+          slots[0] = { type: 'tool', id: 'shovel', name: 'Sand Shovel', icon: '⛏️' };
+        }
+        if (!slots[1] || slots[1].id !== 'leveler') {
+          slots[1] = { type: 'tool', id: 'leveler', name: 'Sand Leveler', icon: '🧹' };
+        }
+        while (slots.length < 6) {
+          slots.push({ type: 'harvest', id: 'empty', name: 'Empty Slot', icon: '', count: 0 });
+        }
+        for (let i = 2; i < slots.length; i++) {
+          if (!slots[i] || !slots[i].count || slots[i].count <= 0) {
+            slots[i] = { type: 'harvest', id: 'empty', name: 'Empty Slot', icon: '', count: 0 };
+          }
+        }
+        this.inventory.hotbarSlots = slots;
         this.inventory.syncCountsFromSlots();
       }
       if (Array.isArray(save.farm_plots)) {

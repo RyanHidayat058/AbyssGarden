@@ -117,6 +117,11 @@ export class ShopModal {
       buyBtn.disabled = this.inventory.pearlShells < crop.seedPrice;
 
       buyBtn.addEventListener('click', () => {
+        if (!this.inventory.canAddSeed(id, 1)) {
+          this.sound.playHurt();
+          alert('Inventory Full! No free slot (Sell items or store in chest first).');
+          return;
+        }
         if (this.inventory.spendShells(crop.seedPrice)) {
           this.inventory.addSeed(id, 1);
           this.sound.playCoin();
@@ -318,6 +323,11 @@ export class ShopModal {
     nutBtn.textContent = 'Buy Pack (+5)';
     nutBtn.disabled = this.inventory.pearlShells < nutCost;
     nutBtn.addEventListener('click', () => {
+      if (!this.inventory.canAddNutrients(5)) {
+        this.sound.playHurt();
+        alert('Inventory Full! No free slot (Sell items or store in chest first).');
+        return;
+      }
       if (this.inventory.spendShells(nutCost)) {
         this.inventory.addNutrients(5);
         this.sound.playCoin();

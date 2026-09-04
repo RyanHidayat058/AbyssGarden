@@ -52,11 +52,6 @@ export class HUD {
       const isEmpty = slot.id === 'empty' || !slot.icon || (slot.count === 0 && slot.type !== 'tool');
 
       slotEl.className = `hotbar-slot ${index === this.inventory.selectedSlotIndex ? 'active' : ''} ${isEmpty ? 'is-empty' : ''}`;
-
-      if (index === 0) slotEl.classList.add('group-start-tool');
-      if (index === 3) slotEl.classList.add('group-start-seed');
-      if (index === 6) slotEl.classList.add('group-start-harvest');
-
       slotEl.title = isEmpty ? `Slot ${index + 1} (Empty)` : slot.name;
 
       const keyLabel = document.createElement('span');
@@ -127,6 +122,10 @@ export class HUD {
 
     // 4. Update Hotbar Active, Counts & Icons
     const slotElements = this.hotbarSlotsEl.children;
+    if (slotElements.length !== this.inventory.hotbarSlots.length) {
+      this.renderHotbar();
+      return;
+    }
     for (let i = 0; i < slotElements.length; i++) {
       const el = slotElements[i] as HTMLElement;
       if (i === this.inventory.selectedSlotIndex) {

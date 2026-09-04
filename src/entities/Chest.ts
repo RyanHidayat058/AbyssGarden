@@ -91,10 +91,16 @@ export class StorageChest {
     let remaining = item.count;
     const itemMutKey = getChestMutKey(item);
 
-    // 1. Try filling existing partial stacks of the same item and identical mutations
+    // 1. Try filling existing partial stacks of the same item, identical mutations, and matching weight
     for (let i = 0; i < this.slots.length; i++) {
       const slot = this.slots[i];
-      if (slot && slot.id === item.id && slot.count < maxStack && getChestMutKey(slot) === itemMutKey) {
+      if (
+        slot &&
+        slot.id === item.id &&
+        slot.count < maxStack &&
+        getChestMutKey(slot) === itemMutKey &&
+        Number((slot.weightKg || 1.0).toFixed(1)) === Number((item.weightKg || 1.0).toFixed(1))
+      ) {
         const space = maxStack - slot.count;
         const add = Math.min(space, remaining);
         slot.count += add;

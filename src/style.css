@@ -257,36 +257,6 @@ html, body {
   background: rgba(76, 243, 216, 0.1);
 }
 
-/* Category Dividers for Tools (1-3), Bibit (4-6), Panen (7-9) */
-.hotbar-slot.group-start-seed {
-  margin-left: 10px;
-}
-
-.hotbar-slot.group-start-seed::before {
-  content: '';
-  position: absolute;
-  left: -7px;
-  top: 15%;
-  height: 70%;
-  width: 2px;
-  background: rgba(76, 243, 216, 0.3);
-  border-radius: 1px;
-}
-
-.hotbar-slot.group-start-harvest {
-  margin-left: 10px;
-}
-
-.hotbar-slot.group-start-harvest::before {
-  content: '';
-  position: absolute;
-  left: -7px;
-  top: 15%;
-  height: 70%;
-  width: 2px;
-  background: rgba(76, 243, 216, 0.3);
-  border-radius: 1px;
-}
 
 .slot-key {
   position: absolute;
